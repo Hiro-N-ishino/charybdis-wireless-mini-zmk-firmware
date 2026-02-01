@@ -54,33 +54,7 @@ jobs:
           west update
           west zephyr-export
 
-      - name: Copy Charybdis shields into ZMK
+      - name: Copy Charybdis shields (bt / dongle only)
+        if: ${{ matrix.format != 'reset' }}
         shell: bash
         run: |
-          mkdir -p zmk/app/boards/shields
-          cp -r config/boards/shields/charybdis_${{ matrix.format }} \
-                zmk/app/boards/shields/
-
-      - name: Prepare keymap
-        shell: bash
-        run: |
-          mkdir -p zmk/app/overlays
-          cp config/keymap/${{ matrix.keymap }}.keymap \
-             zmk/app/overlays/charybdis.keymap
-
-      - name: Build firmware
-        shell: bash
-        working-directory: zmk/app
-        run: |
-          west build -p \
-            -b ${{ matrix.board }} \
-            -- \
-            -DSHIELD=charybdis_${{ matrix.format }} \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
-            -DKEYMAP_FILE=overlays/charybdis.keymap
-
-      - name: Upload firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-${{ matrix.name }}
-          path: zmk/app/build/zephyr/*.uf2
