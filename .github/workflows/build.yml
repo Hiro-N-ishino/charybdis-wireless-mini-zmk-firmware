@@ -7,45 +7,33 @@ on:
   workflow_dispatch:
 
 jobs:
-# ──────────────────────────────────────────────────────────────
-#  SET-UP build-matrix + keymaps
-# ──────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# SETUP
+# ─────────────────────────────────────────────
   setup:
     runs-on: ubuntu-latest
     outputs:
-      groups: ${{ steps.make-groups.outputs.groups }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
-      - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Upload keymaps
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-keymaps
-          path: config/keymap/
+      - run: python scripts/generate_matrix.py > matrix.json
 
-      - name: Generate build matrix
-        run: python scripts/generate_matrix.py > build.json
-
-      - id: make-groups
+      - id: matrix
         run: |
-          echo "groups=$(jq -c 'map({keymap,format,name,board})' build.json)" >>"$GITHUB_OUTPUT"
-          cat build.json | jq .
+          echo "matrix=$(jq -c . matrix.json)" >> "$GITHUB_OUTPUT"
 
-# ──────────────────────────────────────────────────────────────
-#  BUILD
-# ──────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# BUILD
+# ─────────────────────────────────────────────
   build:
-    name: Build (${{ matrix.combo.name }})
     needs: setup
     runs-on: ubuntu-latest
     container: zmkfirmware/zmk-build-arm:stable
@@ -53,84 +41,46 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        combo: ${{ fromJson(needs.setup.outputs.groups) }}
+        include: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Init west workspace
+      - name: Init west
         shell: bash
         run: |
           set -eux
-          west init -l --mf $GITHUB_WORKSPACE/config/west.yml $GITHUB_WORKSPACE/config
+          west init -l config
           west update
           west zephyr-export
 
-      - name: Download keymaps
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-keymaps
-          path: config/keymap
-
-      - name: Prepare overlays
-        shell: bash
-        run: |
-          mkdir -p zmk/app/overlays
-          if [[ "${{ matrix.combo.format }}" != "reset" ]]; then
-            cp config/keymap/${{ matrix.combo.keymap }}.keymap \
-               zmk/app/overlays/charybdis.keymap
-          fi
-
-      - name: Inject charybdis shields
-        if: ${{ matrix.combo.format != 'reset' }}
+      - name: Copy Charybdis shields into ZMK
         shell: bash
         run: |
           mkdir -p zmk/app/boards/shields
-          cp -r boards/shields/charybdis_${{ matrix.combo.format }} \
+          cp -r config/boards/shields/charybdis_${{ matrix.format }} \
                 zmk/app/boards/shields/
+
+      - name: Prepare keymap
+        shell: bash
+        run: |
+          mkdir -p zmk/app/overlays
+          cp config/keymap/${{ matrix.keymap }}.keymap \
+             zmk/app/overlays/charybdis.keymap
 
       - name: Build firmware
         shell: bash
         working-directory: zmk/app
         run: |
-          set -euo pipefail
-
-          FM="${{ matrix.combo.format }}"
-          NM="${{ matrix.combo.name }}"
-          BD="${{ matrix.combo.board }}"
-
-          declare -A LIST=(
-            [bt]="charybdis_bt"
-            [dongle]="charybdis_dongle"
-            [reset]="settings_reset"
-          )
-
-          mkdir -p "$GITHUB_WORKSPACE/out/$NM"
-
-          for SH in ${LIST[$FM]}; do
-            BUILD_DIR=$(mktemp -d)
-
-            if [[ "$FM" != "reset" ]]; then
-              KEYMAP_OPTION="-DKEYMAP_FILE=overlays/charybdis.keymap"
-            else
-              KEYMAP_OPTION=""
-            fi
-
-            west build -p \
-              -d "$BUILD_DIR" \
-              -b "$BD" \
-              -- \
-              "-DZMK_CONFIG=$GITHUB_WORKSPACE/config" \
-              "-DSHIELD=$SH" \
-              $KEYMAP_OPTION
-
-            ART=$(if [[ -f "$BUILD_DIR/zephyr/zmk.uf2" ]]; then echo zmk.uf2; else echo zmk.bin; fi)
-            cp "$BUILD_DIR/zephyr/$ART" "$GITHUB_WORKSPACE/out/$NM/$SH.${ART##*.}"
-          done
+          west build -p \
+            -b ${{ matrix.board }} \
+            -- \
+            -DSHIELD=charybdis_${{ matrix.format }} \
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
+            -DKEYMAP_FILE=overlays/charybdis.keymap
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: charybdis-${{ matrix.combo.name }}
-          path: out/${{ matrix.combo.name }}/
+          name: firmware-${{ matrix.name }}
+          path: zmk/app/build/zephyr/*.uf2
