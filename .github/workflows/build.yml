@@ -11,15 +11,8 @@ jobs:
     container: zmkfirmware/zmk-build-arm:stable
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Init west
-        shell: bash
-        run: |
-          set -eux
-          west init -l --mf config/west.yml config
-          west update
-          west zephyr-export
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Copy Charybdis shields
         shell: bash
