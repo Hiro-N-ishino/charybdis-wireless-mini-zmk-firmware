@@ -56,13 +56,6 @@ jobs:
           west update
           west zephyr-export
 
-      - name: Prepare Charybdis shields
-        shell: bash
-        run: |
-          set -eux
-          mkdir -p zmk/app/boards/shields
-          cp -r config/boards/shields/* zmk/app/boards/shields/
-
       - name: Build firmware
         shell: bash
         run: |
