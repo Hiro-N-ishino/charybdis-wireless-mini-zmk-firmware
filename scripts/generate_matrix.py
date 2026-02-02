@@ -3,12 +3,13 @@ import json
 matrix = [
     {
         "board": "nice_nano_v2",
-        "shield": "charybdis_bt",
-        "artifact": "charybdis_bt"
+        "format": "bt",
+        "keymap": "default",
+        "name": "charybdis-bt"
     }
 ]
 
-print(json.dumps(matrix, indent=2))
+print(json.dumps(matrix))
 
 
 """
