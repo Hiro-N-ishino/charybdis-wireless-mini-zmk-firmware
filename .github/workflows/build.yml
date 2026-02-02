@@ -14,6 +14,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Init west workspace
+        shell: bash
+        run: |
+          set -eux
+          west init .
+          west update
+          west zephyr-export
+
       - name: Copy Charybdis shields
         shell: bash
         run: |
