@@ -24,7 +24,9 @@ jobs:
 
       - run: sudo apt-get update && sudo apt-get install -y jq
 
-      - run: python scripts/generate_matrix.py > matrix.json
+      - name: Generate build matrix
+        run: |
+          python scripts/generate_matrix.py > matrix.json
 
       - id: matrix
         run: |
@@ -54,7 +56,27 @@ jobs:
           west update
           west zephyr-export
 
-      - name: Copy Charybdis shields (bt / dongle only)
-        if: ${{ matrix.format != 'reset' }}
+      - name: Prepare Charybdis shields
         shell: bash
         run: |
+          set -eux
+          mkdir -p zmk/app/boards/shields
+          cp -r config/boards/shields/* zmk/app/boards/shields/
+
+      - name: Build firmware
+        shell: bash
+        run: |
+          set -eux
+          west build -s zmk/app \
+            -b ${{ matrix.board }} \
+            -- \
+            -DSHIELD=${{ matrix.shield }} \
+            -DZMK_CONFIG=$PWD/config
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmk-${{ matrix.board }}-${{ matrix.shield }}
+          path: |
+            build/**/*.uf2
+            build/**/*.hex
