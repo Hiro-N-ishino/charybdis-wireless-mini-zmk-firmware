@@ -1,4 +1,18 @@
 import json
+
+matrix = [
+    {
+        "board": "nice_nano_v2",
+        "shield": "charybdis_bt",
+        "artifact": "charybdis_bt"
+    }
+]
+
+print(json.dumps(matrix, indent=2))
+
+
+"""
+import json
 from pathlib import Path
 
 # === CONFIGURATION ===
@@ -34,3 +48,5 @@ groups.append({
 
 # Dump matrix as compact JSON (GitHub expects it this way)
 print(json.dumps(groups))
+
+"""
