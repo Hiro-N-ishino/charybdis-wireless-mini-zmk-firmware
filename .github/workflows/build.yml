@@ -14,9 +14,6 @@ jobs:
       - name: Checkout config repo
         uses: actions/checkout@v4
 
-      # -------------------------------
-      # ZMK workspace を正しく初期化
-      # -------------------------------
       - name: Init ZMK workspace
         shell: bash
         run: |
@@ -29,9 +26,6 @@ jobs:
           west update
           west zephyr-export
 
-      # -------------------------------
-      # Charybdis shield を配置
-      # -------------------------------
       - name: Copy Charybdis shields
         shell: bash
         run: |
@@ -39,9 +33,6 @@ jobs:
           mkdir -p zmk-workspace/app/boards/shields
           cp -r boards/shields/charybdis_bt zmk-workspace/app/boards/shields/
 
-      # -------------------------------
-      # LEFT
-      # -------------------------------
       - name: Build LEFT
         shell: bash
         run: |
@@ -54,28 +45,4 @@ jobs:
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      # -------------------------------
-      # RIGHT
-      # -------------------------------
-      - name: Build RIGHT
-        shell: bash
-        run: |
-          set -eux
-          cd zmk-workspace
-          west build -p always \
-            -s app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
-
-      # -------------------------------
-      # Artifact
-      # -------------------------------
-      - name: Upload firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: charybdis-bt
-          path: |
-            zmk-workspace/build/zephyr/*.uf2
-            zmk-workspace/build/zephyr/*.bin
+      - name
