@@ -14,38 +14,56 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Init west workspace
+      # ─────────────────────────────
+      # ZMK workspace init
+      # ─────────────────────────────
+      - name: Init west
         shell: bash
         run: |
           set -eux
-          west init .
+          west init -l config
           west update
           west zephyr-export
 
+      # ─────────────────────────────
+      # Copy shields (最低限)
+      # ※ charybdis_bt 配下に left/right がある前提
+      # ─────────────────────────────
       - name: Copy Charybdis shields
         shell: bash
         run: |
           mkdir -p zmk/app/boards/shields
           cp -r boards/shields/charybdis_bt zmk/app/boards/shields/
 
+      # ─────────────────────────────
+      # Build LEFT
+      # ─────────────────────────────
       - name: Build LEFT
-        working-directory: zmk/app
+        shell: bash
         run: |
           west build -p \
             -b nice_nano_v2 \
+            -s zmk/app \
             -- \
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
+      # ─────────────────────────────
+      # Build RIGHT
+      # ─────────────────────────────
       - name: Build RIGHT
-        working-directory: zmk/app
+        shell: bash
         run: |
           west build -p \
             -b nice_nano_v2 \
+            -s zmk/app \
             -- \
             -DSHIELD=charybdis_right \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
+      # ─────────────────────────────
+      # Upload artifacts
+      # ─────────────────────────────
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
