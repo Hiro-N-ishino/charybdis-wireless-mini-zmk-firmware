@@ -1,4 +1,4 @@
-name: Build ZMK Firmware
+name: Build ZMK Firmware (Charybdis BT)
 
 on:
   push:
@@ -14,26 +14,34 @@ jobs:
       - name: Checkout config repo
         uses: actions/checkout@v4
 
-      # ---- ZMK workspace 作成 ----
-      - name: Init west (ZMK)
+      # -------------------------------
+      # ZMK workspace を正しく初期化
+      # -------------------------------
+      - name: Init ZMK workspace
         shell: bash
         run: |
           set -eux
-          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
+          west init \
+            -m https://github.com/zmkfirmware/zmk.git \
+            --manifest-path app \
+            zmk-workspace
           cd zmk-workspace
           west update
           west zephyr-export
 
-      # ---- Charybdis shield を ZMK 側に配置 ----
+      # -------------------------------
+      # Charybdis shield を配置
+      # -------------------------------
       - name: Copy Charybdis shields
         shell: bash
         run: |
           set -eux
           mkdir -p zmk-workspace/app/boards/shields
-          cp -r config/boards/shields/charybdis_bt \
-                zmk-workspace/app/boards/shields/
+          cp -r boards/shields/charybdis_bt zmk-workspace/app/boards/shields/
 
-      # ---- LEFT ----
+      # -------------------------------
+      # LEFT
+      # -------------------------------
       - name: Build LEFT
         shell: bash
         run: |
@@ -46,7 +54,9 @@ jobs:
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      # ---- RIGHT ----
+      # -------------------------------
+      # RIGHT
+      # -------------------------------
       - name: Build RIGHT
         shell: bash
         run: |
@@ -59,7 +69,9 @@ jobs:
             -DSHIELD=charybdis_right \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      # ---- Artifact ----
+      # -------------------------------
+      # Artifact
+      # -------------------------------
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
