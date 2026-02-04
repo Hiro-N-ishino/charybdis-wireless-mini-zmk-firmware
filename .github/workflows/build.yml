@@ -19,7 +19,7 @@ jobs:
           pip install --upgrade pip
           pip install west
 
-      - name: West init (local manifest, v4)
+      - name: Init west workspace
         run: |
           set -eux
           west init -l config
@@ -28,20 +28,22 @@ jobs:
       - name: Debug layout
         run: |
           set -eux
+          pwd
           ls -la
-          ls -la zmk
-          ls -la zmk/app
+          ls -la zmk-workspace
+          ls -la zmk-workspace/zmk
+          ls -la zmk-workspace/zmk/app
 
       - name: Copy shields
         run: |
           set -eux
-          cp -r boards/shields/* zmk/app/boards/shields/
+          cp -r boards/shields/* zmk-workspace/zmk/app/boards/shields/
 
       - name: Build left
         run: |
           set -eux
           west build -p always \
-            -s zmk/app \
+            -s zmk-workspace/zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
