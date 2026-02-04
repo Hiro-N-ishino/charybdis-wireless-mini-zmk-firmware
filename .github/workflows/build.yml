@@ -24,11 +24,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install west
 
-      - name: Init west workspace (ZMK v4 style)
+      - name: Create workspace dir
         run: |
           set -eux
-          west init -l config zmk-workspace
+          mkdir -p zmk-workspace
           cd zmk-workspace
+
+      - name: West init (ZMK v4, local manifest)
+        run: |
+          set -eux
+          cd zmk-workspace
+          west init -l ../config
           west update
 
       - name: Debug workspace layout
@@ -39,7 +45,7 @@ jobs:
           ls -la zmk-workspace/zmk
           ls -la zmk-workspace/zmk/app
 
-      - name: Copy Charybdis shield
+      - name: Copy Charybdis shields
         run: |
           set -eux
           cp -r boards/shields/* zmk-workspace/zmk/app/boards/shields/
