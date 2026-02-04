@@ -1,67 +1,40 @@
-name: Build ZMK Firmware (Debug Clean)
+name: ZMK Build
 
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: zmkfirmware/zmk-build-arm:stable
 
     steps:
-      - name: Checkout config repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ====== ここがスタート地点 ======
-      - name: Debug root (before west)
+      - name: Init west (ZMK v4)
         run: |
           set -eux
-          pwd
-          ls -la
-
-      - name: Init ZMK workspace
-        run: |
-          set -eux
-          west init zmk-workspace
-
-      - name: Debug after west init
-        run: |
-          set -eux
-          ls -la
-          ls -la zmk-workspace
-
-      - name: West update
-        run: |
-          set -eux
+          west init -l config zmk-workspace
           cd zmk-workspace
           west update
 
-      - name: Debug ZMK workspace layout
+      - name: Debug workspace layout
         run: |
           set -eux
+          ls -la
           ls -la zmk-workspace
           ls -la zmk-workspace/app
-          ls -la zmk-workspace/app || true
-          ls -la zmk-workspace/app/boards || true
+          ls -la zmk-workspace/app/boards
 
-      - name: Copy Charybdis shields
+      - name: Copy custom shield
         run: |
           set -eux
           mkdir -p zmk-workspace/app/boards/shields
-          ls -la boards
-          ls -la boards/shields
           cp -r boards/shields/charybdis_bt zmk-workspace/app/boards/shields/
-          ls -la zmk-workspace/app/boards/shields
 
-      - name: Build LEFT (no artifact yet)
+      - name: Build firmware
         run: |
           set -eux
           cd zmk-workspace
-          west build -p always \
-            -s app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+          west build -s app -b nice_nano_v2 -- -DSHIELD=charybdis_bt
