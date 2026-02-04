@@ -2,41 +2,53 @@ name: Build ZMK Firmware (clean v4)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
-  build:
+  build-left:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout config repo
         uses: actions/checkout@v4
 
-      - name: Install west
-        run: |
-          python -m pip install --upgrade pip
-          pip install west
-
-      - name: Nuke workspace (完全洗い替え)
+      - name: Install dependencies
         run: |
           set -eux
-          rm -rf .west zmk zephyr modules build
+          sudo apt-get update
+          sudo apt-get install -y \
+            git cmake ninja-build gperf \
+            ccache dfu-util device-tree-compiler \
+            wget python3-pip python3-setuptools python3-wheel
+          pip3 install --user west
 
-      - name: West init (ZMK v4 manifest)
+      # 🔥 ここが一番重要：west 汚染を完全除去
+      - name: HARD clean workspace
+        run: |
+          set -eux
+          rm -rf .west
+          rm -rf zmk
+          rm -rf zephyr
+          rm -rf modules
+          rm -rf build
+
+      # ✅ ZMK v4 正式手順
+      - name: West init (ZMK v4)
         run: |
           set -eux
           west init -m https://github.com/zmkfirmware/zmk.git --mf app/west.yml
           west update
 
+      # 🔍 構成確認（トラブル時の命綱）
       - name: Debug workspace layout
         run: |
           set -eux
           pwd
           ls -la
+          ls -la zmk
           ls -la zmk/app
 
-      - name: Build left
+      # 🔨 Build left
+      - name: Build left firmware
         run: |
           set -eux
           west build -p always \
@@ -46,18 +58,8 @@ jobs:
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=${{ github.workspace }}/config
 
-      - name: Build right
-        run: |
-          set -eux
-          west build -p always \
-            -s zmk/app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=${{ github.workspace }}/config
-
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: zmk-firmware
+          name: charybdis-left
           path: build/zephyr/*.uf2
