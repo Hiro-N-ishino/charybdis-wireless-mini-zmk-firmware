@@ -1,8 +1,9 @@
-name: ZMK Build
+name: Build ZMK firmware
 
 on:
-  workflow_dispatch:
   push:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,7 +13,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Init west (ZMK v4)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install west
+        run: |
+          set -eux
+          python -m pip install --upgrade pip
+          pip install west
+
+      - name: Init west workspace (ZMK v4 style)
         run: |
           set -eux
           west init -l config zmk-workspace
@@ -24,17 +36,32 @@ jobs:
           set -eux
           ls -la
           ls -la zmk-workspace
-          ls -la zmk-workspace/app
-          ls -la zmk-workspace/app/boards
+          ls -la zmk-workspace/zmk
+          ls -la zmk-workspace/zmk/app
 
-      - name: Copy custom shield
+      - name: Copy Charybdis shield
         run: |
           set -eux
-          mkdir -p zmk-workspace/app/boards/shields
-          cp -r boards/shields/charybdis_bt zmk-workspace/app/boards/shields/
+          cp -r boards/shields/* zmk-workspace/zmk/app/boards/shields/
 
-      - name: Build firmware
+      - name: Build (left)
         run: |
           set -eux
           cd zmk-workspace
-          west build -s app -b nice_nano_v2 -- -DSHIELD=charybdis_bt
+          west build -p always \
+            -s zmk/app \
+            -b nice_nano_v2 \
+            -- \
+            -DSHIELD=charybdis_left \
+            -DZMK_CONFIG=${{ github.workspace }}/config
+
+      - name: Build (right)
+        run: |
+          set -eux
+          cd zmk-workspace
+          west build -p always \
+            -s zmk/app \
+            -b nice_nano_v2 \
+            -- \
+            -DSHIELD=charybdis_right \
+            -DZMK_CONFIG=${{ github.workspace }}/config
