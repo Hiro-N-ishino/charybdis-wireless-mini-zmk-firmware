@@ -10,15 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     container: zmkfirmware/zmk-build-arm:stable
 
+    env:
+      ZEPHYR_BASE: ${{ github.workspace }}/zephyr
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Init west workspace (local)
-        run: |
-          set -eux
-          west init -l .
-          west zephyr-export
 
       - name: Copy Charybdis shields
         run: |
