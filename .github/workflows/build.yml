@@ -26,7 +26,7 @@ jobs:
       - name: Build LEFT
         run: |
           set -eux
-          west build -p always \
+          west -z $ZEPHYR_BASE build -p always \
             -s app \
             -b nice_nano_v2 \
             -- \
@@ -36,7 +36,7 @@ jobs:
       - name: Build RIGHT
         run: |
           set -eux
-          west build -p always \
+          west -z $ZEPHYR_BASE build -p always \
             -s app \
             -b nice_nano_v2 \
             -- \
