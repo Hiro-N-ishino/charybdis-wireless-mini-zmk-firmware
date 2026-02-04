@@ -1,8 +1,6 @@
 name: Build ZMK firmware
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -10,64 +8,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install west
         run: |
-          set -eux
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install west
 
-      - name: Create workspace dir
+      - name: West init (local manifest, v4)
         run: |
           set -eux
-          mkdir -p zmk-workspace
-          cd zmk-workspace
-
-      - name: West init (ZMK v4, local manifest)
-        run: |
-          set -eux
-          cd zmk-workspace
-          west init -l ../config
+          west init -l config
           west update
 
-      - name: Debug workspace layout
+      - name: Debug layout
         run: |
           set -eux
           ls -la
-          ls -la zmk-workspace
-          ls -la zmk-workspace/zmk
-          ls -la zmk-workspace/zmk/app
+          ls -la zmk
+          ls -la zmk/app
 
-      - name: Copy Charybdis shields
+      - name: Copy shields
         run: |
           set -eux
-          cp -r boards/shields/* zmk-workspace/zmk/app/boards/shields/
+          cp -r boards/shields/* zmk/app/boards/shields/
 
-      - name: Build (left)
+      - name: Build left
         run: |
           set -eux
-          cd zmk-workspace
           west build -p always \
             -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=${{ github.workspace }}/config
-
-      - name: Build (right)
-        run: |
-          set -eux
-          cd zmk-workspace
-          west build -p always \
-            -s zmk/app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_right \
             -DZMK_CONFIG=${{ github.workspace }}/config
