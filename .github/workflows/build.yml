@@ -1,9 +1,9 @@
-name: Build ZMK Firmware
+name: Build ZMK Firmware (Debug Clean)
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build:
@@ -14,49 +14,54 @@ jobs:
       - name: Checkout config repo
         uses: actions/checkout@v4
 
-      - name: Init ZMK workspace
-        shell: bash
+      # ====== ここがスタート地点 ======
+      - name: Debug root (before west)
         run: |
           set -eux
-          west init zmk-workspace -m https://github.com/zmkfirmware/zmk.git --mf app/west.yml
+          pwd
+          ls -la
+
+      - name: Init ZMK workspace
+        run: |
+          set -eux
+          west init zmk-workspace
+
+      - name: Debug after west init
+        run: |
+          set -eux
+          ls -la
+          ls -la zmk-workspace
+
+      - name: West update
+        run: |
+          set -eux
           cd zmk-workspace
           west update
-          west zephyr-export
 
-      - name: Copy Charybdis shields
-        shell: bash
+      - name: Debug ZMK workspace layout
         run: |
           set -eux
-          cp -r boards/shields/charybdis_bt zmk-workspace/zmk/app/boards/shields/
+          ls -la zmk-workspace
+          ls -la zmk-workspace/app
+          ls -la zmk-workspace/app || true
+          ls -la zmk-workspace/app/boards || true
 
-      - name: Build LEFT
-        shell: bash
+      - name: Copy Charybdis shields
+        run: |
+          set -eux
+          mkdir -p zmk-workspace/app/boards/shields
+          ls -la boards
+          ls -la boards/shields
+          cp -r boards/shields/charybdis_bt zmk-workspace/app/boards/shields/
+          ls -la zmk-workspace/app/boards/shields
+
+      - name: Build LEFT (no artifact yet)
         run: |
           set -eux
           cd zmk-workspace
           west build -p always \
-            -s zmk/app \
+            -s app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
-
-      - name: Build RIGHT
-        shell: bash
-        run: |
-          set -eux
-          cd zmk-workspace
-          west build -p always \
-            -s zmk/app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
-
-      - name: Upload firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: charybdis-bt
-          path: |
-            zmk-workspace/build/zephyr/*.uf2
-            zmk-workspace/build/zephyr/*.bin
