@@ -1,45 +1,44 @@
-name: Build ZMK firmware
+name: Build ZMK Firmware (clean)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Checkout config repo
+        uses: actions/checkout@v4
 
       - name: Install west
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install west
 
-      - name: Init west workspace (in-tree)
+      - name: Nuke workspace (洗い替え)
         run: |
           set -eux
-          west init -l config
+          rm -rf zmk zephyr modules .west build
+
+      - name: West init (ZMK official manifest)
+        run: |
+          set -eux
+          west init -m https://github.com/zmkfirmware/zmk.git
           west update
 
-      - name: Debug layout
+      - name: Debug workspace layout
         run: |
           set -eux
           pwd
           ls -la
-          ls -la zmk
-          ls -la zmk/app
+          ls -la zmk || true
+          ls -la zephyr || true
+          ls -la modules || true
 
-      - name: Copy shields
-        run: |
-          set -eux
-          mkdir -p zmk/app/boards/shields
-          cp -r boards/shields/* zmk/app/boards/shields/
-
-      - name: Build left
+      - name: Build left (charybdis_left)
         run: |
           set -eux
           west build -p always \
@@ -48,3 +47,20 @@ jobs:
             -- \
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=${{ github.workspace }}/config
+
+      - name: Build right (charybdis_right)
+        run: |
+          set -eux
+          west build -p always \
+            -s zmk/app \
+            -b nice_nano_v2 \
+            -- \
+            -DSHIELD=charybdis_right \
+            -DZMK_CONFIG=${{ github.workspace }}/config
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmk-firmware
+          path: |
+            build/zephyr/*.uf2
