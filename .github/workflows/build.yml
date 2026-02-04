@@ -14,24 +14,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Init west workspace
+      - name: Clean west state
         run: |
           set -eux
-          west init -m https://github.com/zmkfirmware/zmk.git
+          rm -rf .west zmk
+
+      - name: Init west (ZMK official manifest)
+        run: |
+          set -eux
+          west init -m https://github.com/zmkfirmware/zmk.git --mf app/west.yml
           west update
           west zephyr-export
 
       - name: Copy Charybdis shields
         run: |
           set -eux
-          mkdir -p zmk.git/app/boards/shields
-          cp -r boards/shields/charybdis_bt zmk.git/app/boards/shields/
+          mkdir -p zmk/app/boards/shields
+          cp -r boards/shields/charybdis_bt zmk/app/boards/shields/
 
       - name: Build LEFT
         run: |
           set -eux
           west build -p always \
-            -s zmk.git/app \
+            -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
@@ -41,7 +46,7 @@ jobs:
         run: |
           set -eux
           west build -p always \
-            -s zmk.git/app \
+            -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_right \
