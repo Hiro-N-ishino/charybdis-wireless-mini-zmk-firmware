@@ -16,29 +16,38 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip cmake ninja-build gperf \
-            ccache dfu-util device-tree-compiler wget xz-utils file \
-            gcc-arm-none-eabi
+          sudo apt-get install -y \
+            python3-pip cmake ninja-build gperf ccache dfu-util \
+            device-tree-compiler wget xz-utils file gcc-arm-none-eabi
           pip3 install --user west
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Initialize ZMK workspace
+      - name: Init ZMK workspace (correct manifest)
         run: |
-          west init -m https://github.com/zmkfirmware/zmk.git --mr main zmk-workspace
+          rm -rf zmk-workspace
+          west init zmk-workspace \
+            -m https://github.com/zmkfirmware/zmk.git \
+            --mr main \
+            --mf app/west.yml
           cd zmk-workspace
           west update
           west zephyr-export
 
-      - name: Build left firmware
+      - name: Build left
         run: |
           cd zmk-workspace
-          west build -d build/left -b nice_nano_v2 app -- \
+          west build -d build/left \
+            -b nice_nano_v2 \
+            app -- \
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE
 
-      - name: Build right firmware
+      - name: Build right
         run: |
           cd zmk-workspace
-          west build -d build/right -b nice_nano_v2 app -- \
+          west build -d build/right \
+            -b nice_nano_v2 \
+            app -- \
             -DSHIELD=charybdis_right \
             -DZMK_CONFIG=$GITHUB_WORKSPACE
 
