@@ -2,7 +2,6 @@ name: Build ZMK firmware
 
 on:
   push:
-    branches: [ main ]
   pull_request:
 
 jobs:
@@ -10,44 +9,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout config repository
+      - name: Checkout config repo
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git cmake ninja-build gperf \
+            python3-dev python3-pip python3-setuptools \
+            wget xz-utils file make gcc g++ \
+            device-tree-compiler
 
       - name: Install west
-        run: |
-          pip install --upgrade west
+        run: pip3 install --user west
 
-      - name: Initialize west workspace
+      - name: Initialize ZMK workspace
         run: |
-          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
-
-      - name: Update west modules
-        run: |
+          west init zmk-workspace -m https://github.com/zmkfirmware/zmk.git
           cd zmk-workspace
           west update
-
-      - name: Export Zephyr environment
-        run: |
-          cd zmk-workspace
           west zephyr-export
 
       - name: Build firmware
         run: |
           cd zmk-workspace
-          west build \
-            -s zmk/app \
-            -b nice_nano_v2 \
-            -- \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
-            -DSHIELD=charybdis_wireless_mini
+          west build -s zmk/app -b nice_nano_v2 \
+            -- -DZMK_CONFIG=${{ github.workspace }}/config
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: firmware
+          name: zmk-firmware
           path: zmk-workspace/build/zephyr/*.uf2
