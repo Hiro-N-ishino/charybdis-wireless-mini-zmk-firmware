@@ -1,8 +1,6 @@
-name: ZMK Build
+name: Build ZMK firmware
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -10,40 +8,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout config repo
         uses: actions/checkout@v4
-
-      - name: Force Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
 
       - name: Install dependencies
         run: |
           set -eux
           sudo apt-get update
           sudo apt-get install -y \
-            git cmake ninja-build gperf \
-            ccache dfu-util device-tree-compiler \
-            wget
-          python -m pip install --upgrade pip
-          pip install west
+            cmake \
+            ninja-build \
+            gperf \
+            ccache \
+            dfu-util \
+            device-tree-compiler \
+            wget \
+            python3-pip
+          pip3 install --user west
 
-      - name: Debug Python / west
-        run: |
-          set -eux
-          which python
-          python --version
-          which west
-          west --version
-
-      - name: Init west workspace (verbose)
+      - name: Init west workspace (ZMK)
         run: |
           set -eux
           rm -rf zmk-workspace
-          west -vvv init zmk-workspace
+          west -vvv init zmk-workspace \
+            -m https://github.com/zmkfirmware/zmk.git \
+            --mf app/west.yml
           cd zmk-workspace
           west -vvv update
+          west -vvv zephyr-export
 
       - name: Debug workspace
         run: |
@@ -54,38 +46,13 @@ jobs:
           ls -la zmk
           ls -la zmk/app
 
-      - name: Copy config into workspace
-        run: |
-          set -eux
-          cp -r config zmk-workspace/config
-
-      - name: Build left half (FULL VERBOSE)
+      - name: Build left half
         run: |
           set -eux
           cd zmk-workspace
-          west -vvvv build -p always \
+          west -vvv build -p always \
             -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=$PWD/config \
-            -DCMAKE_VERBOSE_MAKEFILE=ON
-
-      # 右側やる場合はここをアンコメント
-      # - name: Build right half (FULL VERBOSE)
-      #   run: |
-      #     set -eux
-      #     cd zmk-workspace
-      #     west -vvvv build -p always \
-      #       -s zmk/app \
-      #       -b nice_nano_v2 \
-      #       -- \
-      #       -DSHIELD=charybdis_right \
-      #       -DZMK_CONFIG=$PWD/config \
-      #       -DCMAKE_VERBOSE_MAKEFILE=ON
-
-      - name: Dump workspace on failure
-        if: failure()
-        run: |
-          echo "===== WORKSPACE TREE ====="
-          find zmk-workspace | sed 's/^/  /'
+            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config
