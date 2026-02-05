@@ -1,4 +1,4 @@
-name: ZMK Build
+name: Build ZMK (Charybdis Wireless)
 
 on:
   push:
@@ -9,17 +9,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        include:
-          - board: nice_nano_v2
-            shield: charybdis_left
-          - board: nice_nano_v2
-            shield: charybdis_right
+    # ★ 初回 west update が重いので必須
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout config repo
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,22 +28,38 @@ jobs:
           pip install --upgrade pip
           pip install west
 
-      - name: Init west workspace
+      # ZMK repo は west workspace 前提なので init が必要
+      - name: West init
         run: |
-          west init -l config
+          set -eux
+          west init -l .
+
+      - name: West update
+        run: |
+          set -eux
           west update
 
-      - name: Build firmware
+      - name: Export Zephyr environment
         run: |
+          set -eux
+          west zephyr-export
+
+      - name: Build left half
+        run: |
+          set -eux
           west build -p always \
             -s zmk/app \
-            -b ${{ matrix.board }} \
+            -b nice_nano_v2 \
             -- \
-            -DSHIELD=${{ matrix.shield }} \
-            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config
+            -DSHIELD=charybdis_left \
+            -DZMK_CONFIG=${{ github.workspace }}/config
 
-      - name: Upload firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-${{ matrix.shield }}
-          path: zmk/build/zephyr/*.uf2
+      - name: Build right half
+        run: |
+          set -eux
+          west build -p always \
+            -s zmk/app \
+            -b nice_nano_v2 \
+            -- \
+            -DSHIELD=charybdis_right \
+            -DZMK_CONFIG=${{ github.workspace }}/config
