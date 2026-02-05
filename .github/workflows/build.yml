@@ -23,7 +23,6 @@ jobs:
             python3-setuptools python3-wheel \
             device-tree-compiler
 
-      # ★ west は apt では入らないので pip で明示インストール
       - name: Install west
         run: |
           pip3 install --user west
@@ -39,10 +38,11 @@ jobs:
           west update
           west zephyr-export
 
+      # ★ BOARD を adafruit_itsybitsy_nrf52840 に修正
       - name: Build Charybdis Wireless Mini (Left)
         run: |
           cd zmk-workspace/zmk
-          west build -d build/left -b nice_nano_v2 app \
+          west build -d build/left -b adafruit_itsybitsy_nrf52840 app \
             -- \
             -DZMK_CONFIG=${{ github.workspace }}/config \
             -DSHIELD=charybdis_left
@@ -50,7 +50,7 @@ jobs:
       - name: Build Charybdis Wireless Mini (Right)
         run: |
           cd zmk-workspace/zmk
-          west build -d build/right -b nice_nano_v2 app \
+          west build -d build/right -b adafruit_itsybitsy_nrf52840 app \
             -- \
             -DZMK_CONFIG=${{ github.workspace }}/config \
             -DSHIELD=charybdis_right
