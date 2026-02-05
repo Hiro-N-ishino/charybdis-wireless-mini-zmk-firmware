@@ -1,4 +1,4 @@
-name: Build ZMK (Charybdis Wireless)
+name: Build ZMK firmware
 
 on:
   push:
@@ -8,58 +8,58 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
-      - name: Checkout config repo
-        uses: actions/checkout@v4
-        with:
-          path: config
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install west
         run: |
-          pip install --upgrade pip
-          pip install west
+          set -eux
+          pip install --upgrade west
 
-      - name: Init ZMK workspace
+      - name: West init & update
         run: |
           set -eux
-          west init \
-            -m https://github.com/zmkfirmware/zmk.git \
-            --mr main \
-            --mf app/west.yml \
-            zmk-workspace
-
-      - name: Update west modules
-        working-directory: zmk-workspace
-        run: |
-          set -eux
+          west init -l .
           west update
           west zephyr-export
 
-      - name: Build left half
-        working-directory: zmk-workspace
+      - name: Debug workspace
         run: |
           set -eux
-          west build -p always \
+          pwd
+          ls -la
+          ls -la zmk || true
+          find . -maxdepth 3 -name west.yml
+
+      - name: Build left half
+        run: |
+          set -eux
+          west -v build -p always \
             -s app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=${{ github.workspace }}/config
+            -DZMK_CONFIG=$PWD/config
 
-      - name: Build right half
-        working-directory: zmk-workspace
+      - name: Debug build output
         run: |
           set -eux
-          west build -p always \
-            -s app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=${{ github.workspace }}/config
+          find build -maxdepth 4 || true
+          ls build/zephyr || true
+
+      # ---- 右手をやる場合はここを外す ----
+      # - name: Build right half
+      #   run: |
+      #     set -eux
+      #     west -v build -p always \
+      #       -s app \
+      #       -b nice_nano_v2 \
+      #       -- \
+      #       -DSHIELD=charybdis_right \
+      #       -DZMK_CONFIG=$PWD/config
