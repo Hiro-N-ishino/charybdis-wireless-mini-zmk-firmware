@@ -1,6 +1,8 @@
-name: Build ZMK firmware
+name: ZMK Build
 
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -8,36 +10,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout config repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install west
         run: |
           set -eux
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            gperf \
-            ccache \
-            dfu-util \
-            device-tree-compiler \
-            wget \
-            python3-pip
-          pip3 install --user west
+          pip install --user west
 
-      - name: Init west workspace (ZMK)
+      - name: Init ZMK west workspace
         run: |
           set -eux
           rm -rf zmk-workspace
           west -vvv init zmk-workspace \
             -m https://github.com/zmkfirmware/zmk.git \
-            --mf app/west.yml
+            --mr main
           cd zmk-workspace
           west -vvv update
           west -vvv zephyr-export
 
-      - name: Debug workspace
+      - name: Debug workspace layout
         run: |
           set -eux
           cd zmk-workspace
