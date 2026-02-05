@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Checkout config repo
@@ -29,7 +29,11 @@ jobs:
       - name: Init ZMK workspace
         run: |
           set -eux
-          west init -m https://github.com/zmkfirmware/zmk.git --mr main zmk-workspace
+          west init \
+            -m https://github.com/zmkfirmware/zmk.git \
+            --mr main \
+            --manifest-path app \
+            zmk-workspace
 
       - name: Update west modules
         working-directory: zmk-workspace
@@ -43,7 +47,7 @@ jobs:
         run: |
           set -eux
           west build -p always \
-            -s zmk/app \
+            -s app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
@@ -54,7 +58,7 @@ jobs:
         run: |
           set -eux
           west build -p always \
-            -s zmk/app \
+            -s app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_right \
