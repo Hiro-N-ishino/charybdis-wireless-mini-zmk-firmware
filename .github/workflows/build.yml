@@ -1,11 +1,9 @@
 name: Build ZMK firmware
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - "config/**"
-      - "build.yml"
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,50 +13,63 @@ jobs:
       - name: Checkout config repo
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            ninja-build cmake python3-pip \
-            python3-setuptools python3-wheel \
-            device-tree-compiler
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install west
         run: |
-          pip3 install --user west
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          python -m pip install --upgrade pip
+          pip install west
 
-      - name: Prepare ZMK workspace
+      - name: Initialize ZMK workspace
         run: |
-          mkdir zmk-workspace
+          west init zmk-workspace --mr main https://github.com/zmkfirmware/zmk.git
           cd zmk-workspace
-          git clone https://github.com/zmkfirmware/zmk.git
-          cd zmk
-          west init -l app
           west update
           west zephyr-export
 
-      # ★ BOARD を adafruit_itsybitsy_nrf52840 に修正
-      - name: Build Charybdis Wireless Mini (Left)
+      - name: Install Zephyr system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            ninja-build \
+            cmake \
+            gperf \
+            ccache \
+            dfu-util \
+            device-tree-compiler \
+            wget \
+            xz-utils \
+            file \
+            make \
+            gcc \
+            gcc-multilib \
+            g++-multilib
+
+      - name: Build left
         run: |
           cd zmk-workspace/zmk
-          west build -d build/left -b adafruit_itsybitsy_nrf52840 app \
+          west build -d build/left \
+            -b nice_nano_v2 app \
             -- \
             -DZMK_CONFIG=${{ github.workspace }}/config \
             -DSHIELD=charybdis_left
 
-      - name: Build Charybdis Wireless Mini (Right)
+      - name: Build right
         run: |
           cd zmk-workspace/zmk
-          west build -d build/right -b adafruit_itsybitsy_nrf52840 app \
+          west build -d build/right \
+            -b nice_nano_v2 app \
             -- \
             -DZMK_CONFIG=${{ github.workspace }}/config \
             -DSHIELD=charybdis_right
 
-      - name: Upload firmware
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: zmk-firmware
           path: |
-            zmk-workspace/zmk/build/left/zephyr/zmk.uf2
-            zmk-workspace/zmk/build/right/zephyr/zmk.uf2
+            zmk-workspace/zmk/build/left/zephyr/*.uf2
+            zmk-workspace/zmk/build/right/zephyr/*.uf2
