@@ -13,6 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Force Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install dependencies
         run: |
           set -eux
@@ -20,29 +25,45 @@ jobs:
           sudo apt-get install -y \
             git cmake ninja-build gperf \
             ccache dfu-util device-tree-compiler \
-            wget python3-pip
-          pip3 install --user west
+            wget
+          python -m pip install --upgrade pip
+          pip install west
 
-      - name: Init west workspace
+      - name: Debug Python / west
         run: |
           set -eux
-          # クリーンな workspace を毎回作る
+          which python
+          python --version
+          which west
+          west --version
+
+      - name: Init west workspace (verbose)
+        run: |
+          set -eux
           rm -rf zmk-workspace
-          west init zmk-workspace
+          west -vvv init zmk-workspace
           cd zmk-workspace
-          west update
+          west -vvv update
+
+      - name: Debug workspace
+        run: |
+          set -eux
+          cd zmk-workspace
+          west topdir
+          ls -la
+          ls -la zmk
+          ls -la zmk/app
 
       - name: Copy config into workspace
         run: |
           set -eux
-          # ZMK は config を workspace 直下から参照させるのが安定
           cp -r config zmk-workspace/config
 
-      - name: Build left half (verbose)
+      - name: Build left half (FULL VERBOSE)
         run: |
           set -eux
           cd zmk-workspace
-          west -vvv build -p always \
+          west -vvvv build -p always \
             -s zmk/app \
             -b nice_nano_v2 \
             -- \
@@ -50,12 +71,12 @@ jobs:
             -DZMK_CONFIG=$PWD/config \
             -DCMAKE_VERBOSE_MAKEFILE=ON
 
-      # ↓ 右側もやるならコメント外すだけ
-      # - name: Build right half (verbose)
+      # 右側やる場合はここをアンコメント
+      # - name: Build right half (FULL VERBOSE)
       #   run: |
       #     set -eux
       #     cd zmk-workspace
-      #     west -vvv build -p always \
+      #     west -vvvv build -p always \
       #       -s zmk/app \
       #       -b nice_nano_v2 \
       #       -- \
@@ -63,8 +84,8 @@ jobs:
       #       -DZMK_CONFIG=$PWD/config \
       #       -DCMAKE_VERBOSE_MAKEFILE=ON
 
-      - name: Debug artifacts
-        if: always()
+      - name: Dump workspace on failure
+        if: failure()
         run: |
-          echo "=== build outputs ==="
-          find zmk-workspace -type f | sed 's/^/  /'
+          echo "===== WORKSPACE TREE ====="
+          find zmk-workspace | sed 's/^/  /'
