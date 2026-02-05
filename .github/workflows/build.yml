@@ -23,25 +23,23 @@ jobs:
           set -eux
           pip install --user west
 
-      - name: Init ZMK west workspace
+      - name: Init west workspace (ZMK)
         run: |
           set -eux
           rm -rf zmk-workspace
           west -vvv init zmk-workspace \
             -m https://github.com/zmkfirmware/zmk.git \
-            --mr main
+            --mf app/west.yml
           cd zmk-workspace
           west -vvv update
           west -vvv zephyr-export
 
-      - name: Debug workspace layout
+      - name: Debug workspace
         run: |
           set -eux
           cd zmk-workspace
           west topdir
-          ls -la
-          ls -la zmk
-          ls -la zmk/app
+          find . -maxdepth 2 -type d
 
       - name: Build left half
         run: |
