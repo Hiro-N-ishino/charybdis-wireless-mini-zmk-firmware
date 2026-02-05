@@ -10,48 +10,61 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout config repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
+          set -eux
           sudo apt-get update
           sudo apt-get install -y \
             git cmake ninja-build gperf \
             ccache dfu-util device-tree-compiler \
-            python3-pip python3-setuptools python3-wheel xz-utils
+            wget python3-pip
           pip3 install --user west
 
-      - name: Init ZMK workspace
+      - name: Init west workspace
         run: |
           set -eux
-          west init \
-            -m https://github.com/zmkfirmware/zmk.git \
-            --mr main \
-            --mf app/west.yml \
-            zmk-workspace
+          # クリーンな workspace を毎回作る
+          rm -rf zmk-workspace
+          west init zmk-workspace
           cd zmk-workspace
           west update
-          west zephyr-export
 
-      - name: Build left half
+      - name: Copy config into workspace
+        run: |
+          set -eux
+          # ZMK は config を workspace 直下から参照させるのが安定
+          cp -r config zmk-workspace/config
+
+      - name: Build left half (verbose)
         run: |
           set -eux
           cd zmk-workspace
-          west -v build -p always \
+          west -vvv build -p always \
             -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+            -DZMK_CONFIG=$PWD/config \
+            -DCMAKE_VERBOSE_MAKEFILE=ON
 
-      - name: Build right half
+      # ↓ 右側もやるならコメント外すだけ
+      # - name: Build right half (verbose)
+      #   run: |
+      #     set -eux
+      #     cd zmk-workspace
+      #     west -vvv build -p always \
+      #       -s zmk/app \
+      #       -b nice_nano_v2 \
+      #       -- \
+      #       -DSHIELD=charybdis_right \
+      #       -DZMK_CONFIG=$PWD/config \
+      #       -DCMAKE_VERBOSE_MAKEFILE=ON
+
+      - name: Debug artifacts
+        if: always()
         run: |
-          set -eux
-          cd zmk-workspace
-          west -v build -p always \
-            -s zmk/app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+          echo "=== build outputs ==="
+          find zmk-workspace -type f | sed 's/^/  /'
