@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip cmake ninja-build gperf \
@@ -26,13 +26,14 @@ jobs:
           pip3 install --user west
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Initialize west workspace
+      - name: Update west modules
         run: |
-          west init -l zmk-workspace
+          cd zmk-workspace
           west update
 
       - name: Build left firmware
         run: |
+          cd zmk-workspace
           west build \
             -s zmk.git/app \
             -b nice_nano_v2 \
@@ -42,6 +43,7 @@ jobs:
 
       - name: Build right firmware
         run: |
+          cd zmk-workspace
           west build \
             -s zmk.git/app \
             -b nice_nano_v2 \
@@ -55,5 +57,5 @@ jobs:
         with:
           name: zmk-firmware
           path: |
-            build/zephyr/zmk.uf2
-            build/right/zephyr/zmk.uf2
+            zmk-workspace/build/zephyr/zmk.uf2
+            zmk-workspace/build/right/zephyr/zmk.uf2
