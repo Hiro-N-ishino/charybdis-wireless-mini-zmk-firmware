@@ -39,7 +39,7 @@ jobs:
           set -eux
           cd zmk-workspace
           west -v build -p always \
-            -s app \
+            -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
@@ -50,7 +50,7 @@ jobs:
           set -eux
           cd zmk-workspace
           west -v build -p always \
-            -s app \
+            -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_right \
