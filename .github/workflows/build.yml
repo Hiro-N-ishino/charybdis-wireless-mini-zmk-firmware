@@ -15,7 +15,20 @@ jobs:
       - name: Checkout config repo
         uses: actions/checkout@v4
 
-      # west init を使わず、ZMK公式のやり方に固定
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            ninja-build cmake python3-pip \
+            python3-setuptools python3-wheel \
+            device-tree-compiler
+
+      # ★ west は apt では入らないので pip で明示インストール
+      - name: Install west
+        run: |
+          pip3 install --user west
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Prepare ZMK workspace
         run: |
           mkdir zmk-workspace
@@ -26,15 +39,6 @@ jobs:
           west update
           west zephyr-export
 
-      - name: Install Zephyr SDK dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            ninja-build cmake python3-pip \
-            python3-setuptools python3-wheel \
-            device-tree-compiler
-
-      # ★ 重要：BOARD ではなく SHIELD を使う
       - name: Build Charybdis Wireless Mini (Left)
         run: |
           cd zmk-workspace/zmk
