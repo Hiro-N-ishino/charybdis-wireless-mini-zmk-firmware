@@ -2,6 +2,7 @@ name: Build ZMK firmware
 
 on:
   push:
+    branches: [ main ]
   pull_request:
   workflow_dispatch:
 
@@ -10,50 +11,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout config repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            git cmake ninja-build gperf \
-            ccache dfu-util device-tree-compiler \
-            wget python3-pip
+          sudo apt-get install -y python3-pip cmake ninja-build gperf \
+            ccache dfu-util device-tree-compiler wget \
+            xz-utils file make gcc-multilib g++-multilib
+
+      - name: Install west
+        run: |
           pip3 install --user west
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Init ZMK workspace
+      - name: Initialize west workspace
         run: |
-          west init \
-            -m https://github.com/zmkfirmware/zmk.git \
-            --mf app/west.yml \
-            zmk-workspace
-          cd zmk-workspace
+          west init -l zmk-workspace
           west update
-          west zephyr-export
 
-      - name: Build left half
+      - name: Build left firmware
         run: |
-          cd zmk-workspace
-          west build -p always \
-            -s zmk/app \
+          west build \
+            -s zmk.git/app \
             -b nice_nano_v2 \
             -- \
-            -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+            -DZMK_CONFIG=../config \
+            -DSHIELD=charybdis_left
 
-      - name: Build right half
+      - name: Build right firmware
         run: |
-          cd zmk-workspace
-          west build -p always \
-            -s zmk/app \
+          west build \
+            -s zmk.git/app \
             -b nice_nano_v2 \
+            -d build/right \
             -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+            -DZMK_CONFIG=../config \
+            -DSHIELD=charybdis_right
 
-      - name: Upload firmware
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: zmk-firmware
-          path: zmk-workspace/build/zephyr/*.uf2
+          path: |
+            build/zephyr/zmk.uf2
+            build/right/zephyr/zmk.uf2
