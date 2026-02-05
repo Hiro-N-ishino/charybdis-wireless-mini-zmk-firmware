@@ -1,39 +1,39 @@
 name: Build ZMK firmware
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout config repo
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y \
+          sudo apt-get update
+          sudo apt-get install -y \
             git cmake ninja-build gperf \
             ccache dfu-util device-tree-compiler \
             python3-pip python3-setuptools python3-wheel \
             xz-utils file make gcc g++ \
-            wget
+            libncurses5-dev libncursesw5-dev
 
           pip3 install --user west
 
       - name: Initialize west workspace
         run: |
-          west init -l config
+          west init zmk-workspace --manifest-url https://github.com/zmkfirmware/zmk.git
+          cd zmk-workspace
           west update
           west zephyr-export
 
       - name: Build firmware
         run: |
-          west build \
-            -s zmk/app \
+          cd zmk-workspace
+          west build -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DZMK_CONFIG=${{ github.workspace }}/config
