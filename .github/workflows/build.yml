@@ -32,7 +32,7 @@ jobs:
           west init \
             -m https://github.com/zmkfirmware/zmk.git \
             --mr main \
-            --manifest-path app \
+            --mf app/west.yml \
             zmk-workspace
 
       - name: Update west modules
