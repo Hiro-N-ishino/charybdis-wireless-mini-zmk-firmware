@@ -1,75 +1,52 @@
-name: Build ZMK firmware
+name: ZMK Build
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        include:
+          - board: nice_nano_v2
+            shield: charybdis_left
+          - board: nice_nano_v2
+            shield: charybdis_right
+
     steps:
-      - name: Checkout ZMK
+      - name: Checkout config repo
         uses: actions/checkout@v4
-        with:
-          repository: zmkfirmware/zmk
-          path: zmk
-          fetch-depth: 0
 
-      - name: Checkout config
-        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          path: config
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            python3-pip \
-            cmake \
-            ninja-build \
-            gperf \
-            ccache \
-            dfu-util \
-            device-tree-compiler \
-            wget \
-            xz-utils \
-            file \
-            make \
-            gcc \
-            gcc-multilib \
-            libc6-dev \
-            libncurses5-dev \
-            libncursesw5-dev
+          python-version: "3.11"
 
       - name: Install west
         run: |
-          pip3 install --user west
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          pip install --upgrade pip
+          pip install west
 
-      - name: Init west
-        working-directory: zmk
+      - name: Init west workspace
         run: |
-          west init -l app
+          west init -l config
           west update
-          west zephyr-export
 
-      - name: Build left
-        working-directory: zmk
+      - name: Build firmware
         run: |
-          west build -p always -s app -b nice_nano_v2 -- \
-            -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=${{ github.workspace }}/config
+          west build -p always \
+            -s zmk/app \
+            -b ${{ matrix.board }} \
+            -- \
+            -DSHIELD=${{ matrix.shield }} \
+            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config
 
-      - name: Build right
-        working-directory: zmk
-        run: |
-          west build -p always -s app -b nice_nano_v2 -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=${{ github.workspace }}/config
-
-      - name: Upload artifacts
+      - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: firmware
+          name: firmware-${{ matrix.shield }}
           path: zmk/build/zephyr/*.uf2
