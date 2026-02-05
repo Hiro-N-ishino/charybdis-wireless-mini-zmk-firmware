@@ -22,7 +22,7 @@ jobs:
           pip3 install --user west
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Init ZMK workspace (correct manifest)
+      - name: Init ZMK workspace
         run: |
           rm -rf zmk-workspace
           west init zmk-workspace \
@@ -33,21 +33,23 @@ jobs:
           west update
           west zephyr-export
 
-      - name: Build left
+      - name: Build left half
         run: |
           cd zmk-workspace
           west build -d build/left \
+            -s zmk/app \
             -b nice_nano_v2 \
-            app -- \
+            -- \
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE
 
-      - name: Build right
+      - name: Build right half
         run: |
           cd zmk-workspace
           west build -d build/right \
+            -s zmk/app \
             -b nice_nano_v2 \
-            app -- \
+            -- \
             -DSHIELD=charybdis_right \
             -DZMK_CONFIG=$GITHUB_WORKSPACE
 
