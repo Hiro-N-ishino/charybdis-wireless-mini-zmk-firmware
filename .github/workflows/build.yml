@@ -24,7 +24,10 @@ jobs:
 
       - name: Init ZMK workspace
         run: |
-          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
+          west init \
+            -m https://github.com/zmkfirmware/zmk.git \
+            --manifest-path app \
+            zmk-workspace
           cd zmk-workspace
           west update
           west zephyr-export
@@ -53,5 +56,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zmk-firmware
-          path: |
-            zmk-workspace/build/zephyr/*.uf2
+          path: zmk-workspace/build/zephyr/*.uf2
