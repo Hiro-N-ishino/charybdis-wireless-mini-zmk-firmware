@@ -1,52 +1,75 @@
-name: Build ZMK Firmware
+name: Build ZMK firmware
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: zmkfirmware/zmk-build-arm:stable
-
-    env:
-      ZEPHYR_BASE: ${{ github.workspace }}/zephyr
 
     steps:
-      - name: Checkout
+      - name: Checkout ZMK
         uses: actions/checkout@v4
+        with:
+          repository: zmkfirmware/zmk
+          path: zmk
+          fetch-depth: 0
 
-      - name: Copy Charybdis shields
-        run: |
-          set -eux
-          mkdir -p app/boards/shields
-          cp -r boards/shields/charybdis_bt app/boards/shields/
+      - name: Checkout config
+        uses: actions/checkout@v4
+        with:
+          path: config
 
-      - name: Build LEFT
+      - name: Install dependencies
         run: |
-          set -eux
-          west -z $ZEPHYR_BASE build -p always \
-            -s app \
-            -b nice_nano_v2 \
-            -- \
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip \
+            cmake \
+            ninja-build \
+            gperf \
+            ccache \
+            dfu-util \
+            device-tree-compiler \
+            wget \
+            xz-utils \
+            file \
+            make \
+            gcc \
+            gcc-multilib \
+            libc6-dev \
+            libncurses5-dev \
+            libncursesw5-dev
+
+      - name: Install west
+        run: |
+          pip3 install --user west
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Init west
+        working-directory: zmk
+        run: |
+          west init -l app
+          west update
+          west zephyr-export
+
+      - name: Build left
+        working-directory: zmk
+        run: |
+          west build -p always -s app -b nice_nano_v2 -- \
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=${{ github.workspace }}/config
 
-      - name: Build RIGHT
+      - name: Build right
+        working-directory: zmk
         run: |
-          set -eux
-          west -z $ZEPHYR_BASE build -p always \
-            -s app \
-            -b nice_nano_v2 \
-            -- \
+          west build -p always -s app -b nice_nano_v2 -- \
             -DSHIELD=charybdis_right \
             -DZMK_CONFIG=${{ github.workspace }}/config
 
-      - name: Upload firmware
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: charybdis-bt
-          path: |
-            build/zephyr/*.uf2
-            build/zephyr/*.bin
+          name: firmware
+          path: zmk/build/zephyr/*.uf2
