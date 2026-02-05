@@ -1,4 +1,4 @@
-name: Build ZMK firmware
+name: ZMK Build
 
 on:
   push:
@@ -10,56 +10,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout config repo
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git cmake ninja-build gperf \
+            ccache dfu-util device-tree-compiler \
+            python3-pip python3-setuptools python3-wheel xz-utils
+          pip3 install --user west
 
-      - name: Install west
+      - name: Init ZMK workspace
         run: |
           set -eux
-          pip install --upgrade west
-
-      - name: West init & update
-        run: |
-          set -eux
-          west init -l .
+          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
+          cd zmk-workspace
           west update
           west zephyr-export
-
-      - name: Debug workspace
-        run: |
-          set -eux
-          pwd
-          ls -la
-          ls -la zmk || true
-          find . -maxdepth 3 -name west.yml
 
       - name: Build left half
         run: |
           set -eux
+          cd zmk-workspace
           west -v build -p always \
-            -s app \
+            -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=$PWD/config
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      - name: Debug build output
+      - name: Build right half
         run: |
           set -eux
-          find build -maxdepth 4 || true
-          ls build/zephyr || true
-
-      # ---- 右手をやる場合はここを外す ----
-      # - name: Build right half
-      #   run: |
-      #     set -eux
-      #     west -v build -p always \
-      #       -s app \
-      #       -b nice_nano_v2 \
-      #       -- \
-      #       -DSHIELD=charybdis_right \
-      #       -DZMK_CONFIG=$PWD/config
+          cd zmk-workspace
+          west -v build -p always \
+            -s zmk/app \
+            -b nice_nano_v2 \
+            -- \
+            -DSHIELD=charybdis_right \
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
