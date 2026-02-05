@@ -4,58 +4,50 @@ on:
   push:
     branches: [ main ]
   pull_request:
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout config repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip cmake ninja-build gperf \
-            ccache dfu-util device-tree-compiler wget \
-            xz-utils file make gcc-multilib g++-multilib
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install west
         run: |
-          pip3 install --user west
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          pip install --upgrade west
+
+      - name: Initialize west workspace
+        run: |
+          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
 
       - name: Update west modules
         run: |
           cd zmk-workspace
           west update
 
-      - name: Build left firmware
+      - name: Export Zephyr environment
+        run: |
+          cd zmk-workspace
+          west zephyr-export
+
+      - name: Build firmware
         run: |
           cd zmk-workspace
           west build \
-            -s zmk.git/app \
+            -s zmk/app \
             -b nice_nano_v2 \
             -- \
-            -DZMK_CONFIG=../config \
-            -DSHIELD=charybdis_left
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
+            -DSHIELD=charybdis_wireless_mini
 
-      - name: Build right firmware
-        run: |
-          cd zmk-workspace
-          west build \
-            -s zmk.git/app \
-            -b nice_nano_v2 \
-            -d build/right \
-            -- \
-            -DZMK_CONFIG=../config \
-            -DSHIELD=charybdis_right
-
-      - name: Upload artifacts
+      - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: zmk-firmware
-          path: |
-            zmk-workspace/build/zephyr/zmk.uf2
-            zmk-workspace/build/right/zephyr/zmk.uf2
+          name: firmware
+          path: zmk-workspace/build/zephyr/*.uf2
