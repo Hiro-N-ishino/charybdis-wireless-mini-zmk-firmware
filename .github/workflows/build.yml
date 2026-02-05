@@ -8,14 +8,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout
+      - name: Checkout (with submodules)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive   # ★ 最重要
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,7 +27,6 @@ jobs:
           pip install --upgrade pip
           pip install west
 
-      # ★ ここが重要：workspace は zmk 配下
       - name: West init
         run: |
           set -eux
