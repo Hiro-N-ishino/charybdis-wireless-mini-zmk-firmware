@@ -26,7 +26,7 @@ jobs:
         run: |
           west init \
             -m https://github.com/zmkfirmware/zmk.git \
-            --manifest-path app \
+            --mf app/west.yml \
             zmk-workspace
           cd zmk-workspace
           west update
