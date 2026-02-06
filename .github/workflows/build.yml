@@ -16,10 +16,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install deps
+      - name: Install system deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build git python3-pip
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            git \
+            python3-pip
 
       - name: Install west
         run: |
@@ -34,12 +38,12 @@ jobs:
             zmk-workspace
           cd zmk-workspace
           west update
-          west zephyr-export
 
       # ===== LEFT =====
       - name: Build left half
         run: |
           cd zmk-workspace
+          west zephyr-export
           west build -p always \
             -s zmk.git/app \
             -b nice_nano \
@@ -51,6 +55,7 @@ jobs:
       - name: Build right half
         run: |
           cd zmk-workspace
+          west zephyr-export
           west build -p always \
             -s zmk.git/app \
             -b nice_nano \
