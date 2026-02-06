@@ -38,9 +38,19 @@ jobs:
           cd zmk-workspace
           west update
 
+      - name: Debug layout
+        run: |
+          cd zmk-workspace
+          echo "=== zmk-workspace ==="
+          ls -la
+          echo "=== zmk.git ==="
+          ls -la zmk.git
+          echo "=== app ==="
+          ls -la zmk.git/app
+
       - name: Build LEFT
         run: |
-          cd zmk-workspace/zmk
+          cd zmk-workspace/zmk.git
           west build -p always \
             -s app \
             -b nice_nano \
@@ -50,7 +60,7 @@ jobs:
 
       - name: Build RIGHT
         run: |
-          cd zmk-workspace/zmk
+          cd zmk-workspace/zmk.git
           west build -p always \
             -s app \
             -b nice_nano \
@@ -63,5 +73,5 @@ jobs:
         with:
           name: zmk-firmware
           path: |
-            zmk-workspace/zmk/build/zephyr/*.uf2
-            zmk-workspace/zmk/build/zephyr/*.hex
+            zmk-workspace/zmk.git/build/zephyr/*.uf2
+            zmk-workspace/zmk.git/build/zephyr/*.hex
