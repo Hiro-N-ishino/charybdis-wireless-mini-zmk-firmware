@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout config repo
         uses: actions/checkout@v4
+        with:
+          path: config
 
       - name: Install dependencies
         run: |
@@ -26,13 +28,15 @@ jobs:
           pip3 install --user west
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: West init (local manifest)
+      - name: Init ZMK workspace
         run: |
-          west init -l config
+          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
+          cd zmk-workspace
           west update
 
-      - name: Build LEFT (nice_nano)
+      - name: Build LEFT
         run: |
+          cd zmk-workspace
           west build -p always \
             -s zmk/app \
             -b nice_nano \
@@ -40,8 +44,9 @@ jobs:
             -DSHIELD=charybdis_bt_left \
             -DZMK_CONFIG=${{ github.workspace }}/config
 
-      - name: Build RIGHT (nice_nano)
+      - name: Build RIGHT
         run: |
+          cd zmk-workspace
           west build -p always \
             -s zmk/app \
             -b nice_nano \
@@ -54,5 +59,5 @@ jobs:
         with:
           name: zmk-firmware
           path: |
-            build/zephyr/*.uf2
-            build/zephyr/*.hex
+            zmk-workspace/build/zephyr/*.uf2
+            zmk-workspace/build/zephyr/*.hex
