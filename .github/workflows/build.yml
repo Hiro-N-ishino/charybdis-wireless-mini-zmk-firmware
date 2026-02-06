@@ -1,62 +1,50 @@
-name: ZMK Build
+name: Build ZMK firmware
 
 on:
   push:
   pull_request:
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout config repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            python3-pip cmake ninja-build gperf ccache dfu-util \
-            device-tree-compiler wget xz-utils file gcc-arm-none-eabi
-          pip3 install --user west
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+            git cmake ninja-build gperf \
+            ccache dfu-util device-tree-compiler \
+            wget python3-pip python3-setuptools python3-wheel xz-utils file make gcc gcc-multilib
 
-      - name: Init ZMK workspace
+          pip3 install --user west
+
+      - name: Init west workspace
         run: |
-          rm -rf zmk-workspace
-          west init zmk-workspace \
-            -m https://github.com/zmkfirmware/zmk.git \
-            --mr main \
-            --mf app/west.yml
-          cd zmk-workspace
+          set -eux
+          west init -l config
           west update
-          west zephyr-export
 
       - name: Build left half
         run: |
-          cd zmk-workspace
-          west build -d build/left \
+          set -eux
+          west build -p always \
             -s zmk/app \
             -b nice_nano_v2 \
             -- \
             -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      - name: Build right half
-        run: |
-          cd zmk-workspace
-          west build -d build/right \
-            -s zmk/app \
-            -b nice_nano_v2 \
-            -- \
-            -DSHIELD=charybdis_right \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: zmk-firmware
-          path: |
-            zmk-workspace/build/left/zephyr/*.uf2
-            zmk-workspace/build/right/zephyr/*.uf2
+      # 右側をビルドしたいときだけ有効化
+      # - name: Build right half
+      #   run: |
+      #     set -eux
+      #     west build -p always \
+      #       -s zmk/app \
+      #       -b nice_nano_v2 \
+      #       -- \
+      #       -DSHIELD=charybdis_right \
+      #       -DZMK_CONFIG=$GITHUB_WORKSPACE/config
