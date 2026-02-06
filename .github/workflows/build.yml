@@ -53,7 +53,7 @@ jobs:
             -s zmk/app \
             -b nice_nano \
             -- \
-            -DSHIELD=charybdis_left \
+            -DSHIELD=charybdis_bt \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
             -DCMAKE_VERBOSE_MAKEFILE=ON
 
@@ -65,6 +65,6 @@ jobs:
             -s zmk/app \
             -b nice_nano \
             -- \
-            -DSHIELD=charybdis_right \
+            -DSHIELD=charybdis_bt \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
             -DCMAKE_VERBOSE_MAKEFILE=ON
