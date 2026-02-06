@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install system deps
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -39,7 +39,6 @@ jobs:
           cd zmk-workspace
           west update
 
-      # ===== LEFT =====
       - name: Build left half
         run: |
           cd zmk-workspace
@@ -49,9 +48,9 @@ jobs:
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt_left \
-            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config
+            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config \
+            -DZEPHYR_BASE=$PWD/zephyr
 
-      # ===== RIGHT =====
       - name: Build right half
         run: |
           cd zmk-workspace
@@ -61,4 +60,5 @@ jobs:
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt_right \
-            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config
+            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config \
+            -DZEPHYR_BASE=$PWD/zephyr
