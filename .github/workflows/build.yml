@@ -1,4 +1,4 @@
-name: Build ZMK firmware
+name: ZMK Build
 
 on:
   push:
@@ -9,62 +9,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout config repo
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
+      - name: Install system deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            git cmake ninja-build gperf \
-            ccache dfu-util device-tree-compiler \
-            wget python3-pip python3-setuptools python3-wheel xz-utils file make \
-            gcc gcc-multilib
+          sudo apt-get install -y python3-pip ninja-build cmake
 
       - name: Install west
         run: |
           pip3 install --user west
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      # ★ 正：このリポ構成では config/west.yml が manifest
-      - name: Init west workspace
+      - name: Init ZMK workspace
         run: |
-          set -eux
-          west init -l config
+          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
+          cd zmk-workspace
           west update
-          west zephyr-export
-          west list
 
-      # ★ 状態可視化（ここで壊れてたら即分かる）
-      - name: Debug workspace
+      - name: Copy shields into ZMK
         run: |
-          set -eux
-          west topdir
-          ls -la
-          ls -la zmk || true
-          ls -la zephyr || true
-          ls -la modules || true
+          cp -r boards/shields/* zmk-workspace/zmk/boards/shields/
 
-      # ★ left build（BOARDは nice_nano 固定）
-      - name: Build left half
+      - name: Build LEFT
         run: |
-          set -eux
-          west -v build -p always \
+          cd zmk-workspace
+          west build -p always \
             -s zmk/app \
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
-            -DCMAKE_VERBOSE_MAKEFILE=ON
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      # 右側をやるならコメント外す
-      - name: Build right half
+      - name: Build RIGHT
         run: |
-          set -eux
-          west -v build -p always \
+          cd zmk-workspace
+          west build -p always \
             -s zmk/app \
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
-            -DCMAKE_VERBOSE_MAKEFILE=ON
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
