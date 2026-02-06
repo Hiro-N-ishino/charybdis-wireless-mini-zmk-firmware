@@ -33,7 +33,7 @@ jobs:
           pip install --user west
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Init ZMK workspace (correct manifest)
+      - name: Init ZMK workspace
         run: |
           west init \
             -m https://github.com/zmkfirmware/zmk.git \
@@ -41,16 +41,12 @@ jobs:
             zmk-workspace
           cd zmk-workspace
           west update
-
-      - name: Zephyr export
-        run: |
-          cd zmk-workspace
           west zephyr-export
 
       # ===== Left =====
       - name: Build left half
         run: |
-          cd zmk-workspace/zmk
+          cd zmk-workspace/zmk.git
           west build -p always \
             -s app \
             -b nice_nano \
@@ -61,7 +57,7 @@ jobs:
       # ===== Right =====
       - name: Build right half
         run: |
-          cd zmk-workspace/zmk
+          cd zmk-workspace/zmk.git
           west build -p always \
             -s app \
             -b nice_nano \
