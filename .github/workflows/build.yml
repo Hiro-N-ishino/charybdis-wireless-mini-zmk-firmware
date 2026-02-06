@@ -12,21 +12,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             git cmake ninja-build gperf \
             ccache dfu-util device-tree-compiler \
-            wget python3-pip python3-setuptools python3-wheel xz-utils file make gcc gcc-multilib
+            wget python3-pip python3-setuptools python3-wheel xz-utils file make \
+            gcc gcc-multilib
 
+      - name: Install west
+        run: |
           pip3 install --user west
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Init west workspace
         run: |
           set -eux
           west init -l config
           west update
+
+      - name: Export Zephyr CMake package
+        run: |
+          set -eux
+          west zephyr-export
 
       - name: Build left half
         run: |
@@ -38,7 +47,7 @@ jobs:
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      # 右側をビルドしたいときだけ有効化
+      # 右側が必要ならここを有効化
       # - name: Build right half
       #   run: |
       #     set -eux
