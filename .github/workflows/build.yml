@@ -40,9 +40,9 @@ jobs:
 
       - name: Build LEFT
         run: |
-          cd zmk-workspace
+          cd zmk-workspace/zmk
           west build -p always \
-            -s zmk/app \
+            -s app \
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt_left \
@@ -50,9 +50,9 @@ jobs:
 
       - name: Build RIGHT
         run: |
-          cd zmk-workspace
+          cd zmk-workspace/zmk
           west build -p always \
-            -s zmk/app \
+            -s app \
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt_right \
@@ -63,5 +63,5 @@ jobs:
         with:
           name: zmk-firmware
           path: |
-            zmk-workspace/build/zephyr/*.uf2
-            zmk-workspace/build/zephyr/*.hex
+            zmk-workspace/zmk/build/zephyr/*.uf2
+            zmk-workspace/zmk/build/zephyr/*.hex
