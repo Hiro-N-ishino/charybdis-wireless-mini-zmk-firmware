@@ -10,23 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install system dependencies
+      - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            git \
-            wget \
-            python3-pip
+          sudo apt-get install -y cmake ninja-build git python3-pip
 
       - name: Install west
         run: |
@@ -43,23 +36,23 @@ jobs:
           west update
           west zephyr-export
 
-      # ===== Left =====
+      # ===== LEFT =====
       - name: Build left half
         run: |
-          cd zmk-workspace/zmk.git
+          cd zmk-workspace
           west build -p always \
-            -s app \
+            -s zmk.git/app \
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt_left \
             -DZMK_CONFIG=${GITHUB_WORKSPACE}/config
 
-      # ===== Right =====
+      # ===== RIGHT =====
       - name: Build right half
         run: |
-          cd zmk-workspace/zmk.git
+          cd zmk-workspace
           west build -p always \
-            -s app \
+            -s zmk.git/app \
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_bt_right \
