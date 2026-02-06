@@ -1,8 +1,9 @@
-name: ZMK Build
+name: Build ZMK (Charybdis Wireless Mini)
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,42 +13,46 @@ jobs:
       - name: Checkout config repo
         uses: actions/checkout@v4
 
-      - name: Install system deps
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip ninja-build cmake
+          sudo apt-get install -y \
+            git cmake ninja-build gperf \
+            ccache dfu-util device-tree-compiler \
+            wget python3-pip
 
       - name: Install west
         run: |
           pip3 install --user west
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Init ZMK workspace
+      - name: West init (local manifest)
         run: |
-          west init -m https://github.com/zmkfirmware/zmk.git zmk-workspace
-          cd zmk-workspace
+          west init -l config
           west update
 
-      - name: Copy shields into ZMK
+      - name: Build LEFT (nice_nano)
         run: |
-          cp -r boards/shields/* zmk-workspace/zmk/boards/shields/
-
-      - name: Build LEFT
-        run: |
-          cd zmk-workspace
           west build -p always \
             -s zmk/app \
             -b nice_nano \
             -- \
-            -DSHIELD=charybdis_bt \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+            -DSHIELD=charybdis_bt_left \
+            -DZMK_CONFIG=${{ github.workspace }}/config
 
-      - name: Build RIGHT
+      - name: Build RIGHT (nice_nano)
         run: |
-          cd zmk-workspace
           west build -p always \
             -s zmk/app \
             -b nice_nano \
             -- \
-            -DSHIELD=charybdis_bt \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+            -DSHIELD=charybdis_bt_right \
+            -DZMK_CONFIG=${{ github.workspace }}/config
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmk-firmware
+          path: |
+            build/zephyr/*.uf2
+            build/zephyr/*.hex
