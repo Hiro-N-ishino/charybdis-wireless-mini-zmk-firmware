@@ -31,10 +31,6 @@ jobs:
           set -eux
           west init -l config
           west update
-
-      - name: Export Zephyr CMake package
-        run: |
-          set -eux
           west zephyr-export
 
       - name: Build left half
@@ -42,18 +38,18 @@ jobs:
           set -eux
           west build -p always \
             -s zmk/app \
-            -b nice_nano_v2 \
+            -b nice_nano \
             -- \
             -DSHIELD=charybdis_left \
             -DZMK_CONFIG=$GITHUB_WORKSPACE/config
 
-      # 右側が必要ならここを有効化
+      # 右側ビルドするなら有効化
       # - name: Build right half
       #   run: |
       #     set -eux
       #     west build -p always \
       #       -s zmk/app \
-      #       -b nice_nano_v2 \
+      #       -b nice_nano \
       #       -- \
       #       -DSHIELD=charybdis_right \
       #       -DZMK_CONFIG=$GITHUB_WORKSPACE/config
