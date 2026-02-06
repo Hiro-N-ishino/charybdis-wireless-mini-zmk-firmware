@@ -49,7 +49,7 @@ jobs:
       - name: Build left half
         run: |
           set -eux
-          west build -v -p always \
+          west -v build -p always \
             -s zmk/app \
             -b nice_nano \
             -- \
@@ -61,7 +61,7 @@ jobs:
       - name: Build right half
         run: |
           set -eux
-          west build -v -p always \
+          west -v build -p always \
             -s zmk/app \
             -b nice_nano \
             -- \
