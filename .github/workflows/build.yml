@@ -26,30 +26,45 @@ jobs:
           pip3 install --user west
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      # ★ 正：このリポ構成では config/west.yml が manifest
       - name: Init west workspace
         run: |
           set -eux
           west init -l config
           west update
           west zephyr-export
+          west list
 
+      # ★ 状態可視化（ここで壊れてたら即分かる）
+      - name: Debug workspace
+        run: |
+          set -eux
+          west topdir
+          ls -la
+          ls -la zmk || true
+          ls -la zephyr || true
+          ls -la modules || true
+
+      # ★ left build（BOARDは nice_nano 固定）
       - name: Build left half
         run: |
           set -eux
-          west build -p always \
+          west build -p always -v \
             -s zmk/app \
             -b nice_nano \
             -- \
             -DSHIELD=charybdis_left \
-            -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
+            -DCMAKE_VERBOSE_MAKEFILE=ON
 
-      # 右側ビルドするなら有効化
-      # - name: Build right half
-      #   run: |
-      #     set -eux
-      #     west build -p always \
-      #       -s zmk/app \
-      #       -b nice_nano \
-      #       -- \
-      #       -DSHIELD=charybdis_right \
-      #       -DZMK_CONFIG=$GITHUB_WORKSPACE/config
+      # 右側をやるならコメント外す
+      - name: Build right half
+        run: |
+          set -eux
+          west build -p always -v \
+            -s zmk/app \
+            -b nice_nano \
+            -- \
+            -DSHIELD=charybdis_right \
+            -DZMK_CONFIG=$GITHUB_WORKSPACE/config \
+            -DCMAKE_VERBOSE_MAKEFILE=ON
