@@ -19,7 +19,7 @@ jobs:
             shield: charybdis_right
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Build ZMK firmware
@@ -29,7 +29,7 @@ jobs:
           shield: ${{ matrix.shield }}
           config: config
 
-      - name: Upload firmware
+      - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ matrix.shield }}
