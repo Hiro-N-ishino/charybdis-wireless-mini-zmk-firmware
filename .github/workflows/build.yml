@@ -9,56 +9,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: nice_nano
+            shield: charybdis_left
+          - board: nice_nano
+            shield: charybdis_right
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Build ZMK firmware
+        uses: zmkfirmware/zmk-build-action@v1
         with:
-          python-version: '3.12'
+          board: ${{ matrix.board }}
+          shield: ${{ matrix.shield }}
+          config: config
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            git \
-            python3-pip
-
-      - name: Install west
-        run: |
-          pip install --user west
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Init ZMK workspace
-        run: |
-          west init \
-            -m https://github.com/zmkfirmware/zmk.git \
-            --mf app/west.yml \
-            zmk-workspace
-          cd zmk-workspace
-          west update
-
-      - name: Build left half
-        run: |
-          cd zmk-workspace
-          west zephyr-export
-          west build -p always \
-            -s zmk.git/app \
-            -b nice_nano \
-            -- \
-            -DSHIELD=charybdis_bt_left \
-            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config \
-            -DZEPHYR_BASE=$PWD/zephyr
-
-      - name: Build right half
-        run: |
-          cd zmk-workspace
-          west zephyr-export
-          west build -p always \
-            -s zmk.git/app \
-            -b nice_nano \
-            -- \
-            -DSHIELD=charybdis_bt_right \
-            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config \
-            -DZEPHYR_BASE=$PWD/zephyr
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.shield }}
+          path: |
+            *.uf2
+            *.hex
