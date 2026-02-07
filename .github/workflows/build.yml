@@ -5,31 +5,34 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
-  packages: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: nice_nano
+            shield: charybdis_left
+          - board: nice_nano
+            shield: charybdis_right
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ★これが足りてなかった
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
       - name: Build ZMK firmware
-        uses: docker://ghcr.io/zmkfirmware/zmk-build-action:v1
+        uses: zmkfirmware/zmk-build-action@v2
         with:
+          board: ${{ matrix.board }}
+          shield: ${{ matrix.shield }}
           config: config
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firmware
+          name: firmware-${{ matrix.shield }}
           path: |
-            *.uf2
-            *.hex
+            app/build/zephyr/zephyr.uf2
+            app/build/zephyr/zephyr.hex
