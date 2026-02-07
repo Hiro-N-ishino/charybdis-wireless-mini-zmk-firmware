@@ -7,32 +7,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # ZMK 公式の workflow テンプレートを呼び出す
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - board: nice_nano
-            shield: charybdis_left
-          - board: nice_nano
-            shield: charybdis_right
+    with:
+      # build.yaml 内の設定を元にビルドされるので、
+      # 通常 explicit board/shield は不要です
+      # ZMK CLI で生成された build.yaml に依存します
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build ZMK firmware
-        uses: zmkfirmware/zmk-build@v1
-        with:
-          board: ${{ matrix.board }}
-          shield: ${{ matrix.shield }}
-          config: config
-
-      - name: Upload firmware artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-${{ matrix.shield }}
-          path: |
-            app/build/zephyr/zephyr.uf2
-            app/build/zephyr/zephyr.hex
+    secrets: inherit
