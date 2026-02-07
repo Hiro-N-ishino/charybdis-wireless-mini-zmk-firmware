@@ -22,17 +22,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build ZMK firmware
-        uses: zmkfirmware/zmk-build-action@v1
-        with:
-          board: ${{ matrix.board }}
-          shield: ${{ matrix.shield }}
-          config: config
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            python3-pip \
+            git \
+            wget \
+            xz-utils
+
+      - name: Install west
+        run: |
+          pip3 install --user west
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Init ZMK workspace
+        run: |
+          mkdir zmk-workspace
+          cd zmk-workspace
+          west init -m https://github.com/zmkfirmware/zmk.git
+          west update
+          west zephyr-export
+
+      - name: Build firmware
+        run: |
+          cd zmk-workspace
+          west build -p always \
+            -b ${{ matrix.board }} \
+            -s zmk/app \
+            -- \
+            -DSHIELD=${{ matrix.shield }} \
+            -DZMK_CONFIG=${GITHUB_WORKSPACE}/config
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ matrix.shield }}
           path: |
-            *.uf2
-            *.hex
+            zmk-workspace/build/zephyr/*.uf2
+            zmk-workspace/build/zephyr/*.hex
